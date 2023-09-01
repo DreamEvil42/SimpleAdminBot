@@ -64,10 +64,14 @@ export const ClearChannel: SlashCommand = {
                 messages = (await channel.messages.fetch({ limit }));
                 const twoWeeksAgo = moment().subtract(2, 'weeks').add(10, 'seconds');
                 messages = messages.filter(m => moment(m.createdTimestamp).isAfter(twoWeeksAgo));
-                Logger.log(`Bulk deleting ${messages.size} messages`);
-                await channel.bulkDelete(messages, true);
-                keepGoing = messages.size > 0;
+                if (messages.size > 0) {
+                    Logger.log(`Bulk deleting ${messages.size} messages`);
+                    await channel.bulkDelete(messages, true);
+                }
+                keepGoing = messages.size === limit;
             }
+
+            messages = (await channel.messages.fetch({ limit: 1 }));
 
             if (messages!.size > 0) {
                 await DoResult.OkUpdate(interaction, {
