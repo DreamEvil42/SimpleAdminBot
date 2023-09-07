@@ -40,10 +40,10 @@ export const DeleteMessages: SlashCommand = {
             keepGoing = remainingCount > 0 && messages.size === limit;
         }
 
-        limit = Math.min(100, remainingCount);
+        limit = Math.max(1, remainingCount);
         messages = (await channel.messages.fetch({ limit }));
-        if (remainingCount > messages.size)
-            remainingCount = messages.size;
+        if (!messages.size)
+            remainingCount = 0;
 
 
         if (remainingCount) {
