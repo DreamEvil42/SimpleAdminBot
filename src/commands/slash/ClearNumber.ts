@@ -1,4 +1,3 @@
-import { channel } from 'diagnostics_channel';
 import { GuildTextBasedChannel, Locale, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import moment from 'moment';
 import { DoResult } from '../../helpers/results.js';
@@ -6,7 +5,7 @@ import { Logger } from '../../services/logging.service.js';
 import { Translate } from '../../services/translate.service.js';
 import { SlashCommand } from '../../types/commands.js';
 
-export const DeleteMessages: SlashCommand = {
+export const ClearNumber: SlashCommand = {
     command: new SlashCommandBuilder()
         .setName('clear-number')
         .setDescription(Translate.getTranslation(Locale.EnglishGB, 'delete-messages-description'))
@@ -28,21 +27,24 @@ export const DeleteMessages: SlashCommand = {
 
         let limit;
         let messages;
+        let pinnedMessages = 0;
         let keepGoing = true;
         while (keepGoing) {
-            limit = Math.min(100, remainingCount);
+            limit = Math.min(100, remainingCount + pinnedMessages);
             messages = (await channel.messages.fetch({ limit }));
             const twoWeeksAgo = moment().subtract(2, 'weeks').add(10, 'seconds');
             messages = messages.filter(m => moment(m.createdTimestamp).isAfter(twoWeeksAgo));
+            pinnedMessages = messages.reduce((acc, msg) => msg.pinned ? acc + 1 : acc, 0);
+            messages = messages.filter(m => !m.pinned);
             Logger.log(`Bulk deleting ${messages.size} messages`);
             remainingCount -= messages.size;
             await channel.bulkDelete(messages);
-            keepGoing = remainingCount > 0 && messages.size === limit;
+            keepGoing = remainingCount > 0 && messages.size === (limit - pinnedMessages);
         }
 
         limit = Math.max(1, remainingCount);
         messages = (await channel.messages.fetch({ limit }));
-        if (!messages.size)
+        if (messages.size <= pinnedMessages)
             remainingCount = 0;
 
 
@@ -52,9 +54,11 @@ export const DeleteMessages: SlashCommand = {
                 description: Translate.getTranslation(locale, 'partial-description'),
             });
 
-            while(remainingCount > 0 && messages.size > 0) {
-                limit = Math.min(20, remainingCount);
+            while(remainingCount > 0 && messages.size > pinnedMessages) {
+                limit = Math.min(30, remainingCount + pinnedMessages);
                 messages = await channel.messages.fetch({ limit });
+                pinnedMessages = messages.reduce((acc, msg) => msg.pinned ? acc + 1 : acc, 0);
+                messages = messages.filter(m => !m.pinned);
                 Logger.log(`Deleting ${messages.size} messages`);
                 remainingCount -= messages.size;
                 const promises = messages.map(message => channel.messages.delete(message));

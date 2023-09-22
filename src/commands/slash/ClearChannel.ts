@@ -59,30 +59,35 @@ export const ClearChannel: SlashCommand = {
             const channel = (await interaction.client.channels.fetch(interaction.channelId)) as GuildTextBasedChannel;
             const limit = 100;
             let messages;
+            let pinnedMessages = 0;
             let keepGoing = true;
             while (keepGoing) {
                 messages = (await channel.messages.fetch({ limit }));
                 const twoWeeksAgo = moment().subtract(2, 'weeks').add(10, 'seconds');
                 messages = messages.filter(m => moment(m.createdTimestamp).isAfter(twoWeeksAgo));
+                pinnedMessages = messages.reduce((acc, msg) => msg.pinned ? acc + 1 : acc, 0);
+                messages = messages.filter(m => !m.pinned);
                 if (messages.size > 0) {
                     Logger.log(`Bulk deleting ${messages.size} messages`);
                     await channel.bulkDelete(messages, true);
                 }
-                keepGoing = messages.size === limit;
+                keepGoing = messages.size === (limit - pinnedMessages) && pinnedMessages < limit;
             }
 
-            messages = (await channel.messages.fetch({ limit: 1 }));
+            messages = (await channel.messages.fetch({ limit: pinnedMessages + 1 }));
 
-            if (messages!.size > 0) {
+            if (messages!.size > pinnedMessages) {
                 await DoResult.OkUpdate(interaction, {
                     title: Translate.getTranslation(locale, 'partial-title'),
                     description: Translate.getTranslation(locale, 'partial-description'),
                     components: [],
                 });
 
-                const shortLimit = 20;
+                const shortLimit = 30;
                 messages = await channel.messages.fetch({ limit: shortLimit });
-                while (messages.size > 0) {
+                while (messages.size > pinnedMessages) {
+                    pinnedMessages = messages.reduce((acc, msg) => msg.pinned ? acc + 1 : acc, 0);
+                    messages = messages.filter(m => !m.pinned);
                     Logger.log(`Deleting ${messages.size} older messages.`);
                     const promises = messages.map(message => channel.messages.delete(message));
                     await Promise.all(promises);

@@ -7,5 +7,6 @@ npx tsc
 Write-Output "Uploading to $server..."
 ssh -i "~/.ssh/AWS.pem" ubuntu@"$server" 'mkdir -p SimpleAdminBot/dist; exit;'
 scp -i "~/.ssh/AWS.pem" -r .\dist\* ubuntu@"$server":SimpleAdminBot\dist
+scp -i "~/.ssh/AWS.pem" -r .\dist\types\constants.prod.js ubuntu@"$server":SimpleAdminBot\dist\types\constants.js
 scp -i "~/.ssh/AWS.pem" *.json ubuntu@"$server":SimpleAdminBot\
 Write-Output "Upload complete!"
