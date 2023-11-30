@@ -2,3 +2,5 @@
 /node_modules/
 /src/types/constants.ts
 /src/types/constants.prod.ts
+/src/data/everything.db
+/packaged.tgz

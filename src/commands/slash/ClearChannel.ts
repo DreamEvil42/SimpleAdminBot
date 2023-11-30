@@ -90,7 +90,7 @@ export const ClearChannel: SlashCommand = {
                     messages = messages.filter(m => !m.pinned);
                     Logger.log(`Deleting ${messages.size} older messages.`);
                     const promises = messages.map(message => channel.messages.delete(message));
-                    await Promise.all(promises);
+                    await Promise.allSettled(promises);
                     messages = await channel.messages.fetch({ limit: shortLimit });
                 }
             } else {
@@ -105,6 +105,6 @@ export const ClearChannel: SlashCommand = {
 };
 
 enum ButtonAction {
-    Clear = "Clear",
-    Cancel = "Cancel"
+    Clear = 'Clear',
+    Cancel = 'Cancel'
 }
